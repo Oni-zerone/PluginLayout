@@ -9,17 +9,17 @@
 import Foundation
 import UIKit
 
-public protocol PinterestLayoutDelegate: UICollectionViewDelegateFlowLayout {
-    func columns(for section: Int) -> Int
-    func aspectRatio(at indexPath: IndexPath) -> CGFloat
+public protocol StaggeredLayoutDelegate: UICollectionViewDelegateFlowLayout {
+    func collectionView(_ collectionView: UICollectionView, layout: PluginLayout, columnsForSectionAt section: Int) -> Int
+    func collectionView(_ collectionView: UICollectionView, layout: PluginLayout, aspectRatioAt indexPath: IndexPath) -> CGFloat
 }
 
-open class PinterestLayoutPlugin: Plugin {
+open class StaggeredLayoutPlugin: Plugin {
     public func layoutAttributes(in section: Int, offset: inout CGPoint, layout: PluginLayout) -> [UICollectionViewLayoutAttributes] {
         
         guard let collectionView = layout.collectionView,
             let delegate = delegate else { return [] }
-        let columns = delegate.columns(for: section)
+        let columns = delegate.collectionView(collectionView, layout: layout, columnsForSectionAt: section)
         let insets = delegate.collectionView?(collectionView, layout: layout, insetForSectionAt: section) ?? .zero
         let itemSpacing = delegate.collectionView?(collectionView, layout: layout, minimumInteritemSpacingForSectionAt: section) ?? 0
         let lineSpacing = delegate.collectionView?(collectionView, layout: layout, minimumLineSpacingForSectionAt: section) ?? 0
@@ -47,9 +47,14 @@ open class PinterestLayoutPlugin: Plugin {
                         lineBottom[currentColumn] = origin.y + itemSize.height
                     }
                 } else {
-                    
-                    origin = CGPoint(x: insets.left, y: lineBottom[currentColumn])
-                    lineBottom[currentColumn] = origin.y
+                    let x: CGFloat
+                    if let last = itemsAccumulator.last {
+                        x = last.frame.maxX + itemSpacing
+                    } else {
+                        x = insets.left
+                    }
+                    origin = CGPoint(x: x, y: lineBottom[currentColumn])
+                    lineBottom[currentColumn] = origin.y + itemSize.height
                     currentColumn = currentColumn + 1
                 }
                 attribute.frame = CGRect(origin: origin, size: itemSize)
@@ -66,12 +71,12 @@ open class PinterestLayoutPlugin: Plugin {
         return attributes
     }
     
-    public weak var delegate: PinterestLayoutDelegate?
-    public init(delegate: PinterestLayoutDelegate ) {
+    public weak var delegate: StaggeredLayoutDelegate?
+    public init(delegate: StaggeredLayoutDelegate ) {
         self.delegate = delegate
     }
     func columnWidth(for section: Int, collectionView: UICollectionView, layout: PluginLayout) -> CGFloat {
-        let n = delegate?.columns(for: section) ?? 1
+        let n = delegate?.collectionView(collectionView, layout: layout, columnsForSectionAt: section) ?? 1
         
         let itemsPerLine = max(n, 1)
         let insets = delegate?.collectionView?(collectionView, layout: layout, insetForSectionAt: section) ?? .zero
@@ -82,7 +87,7 @@ open class PinterestLayoutPlugin: Plugin {
     }
     func itemSize(at indexPath: IndexPath, collectionView: UICollectionView, layout: PluginLayout) -> CGSize {
         let itemWidth = self.columnWidth(for: indexPath.section, collectionView: collectionView, layout: layout)
-        let ratio = delegate?.aspectRatio(at: indexPath) ?? 1
+        let ratio = delegate?.collectionView(collectionView, layout: layout, aspectRatioAt: indexPath) ?? 1
         
         return CGSize(width: itemWidth, height: itemWidth / ratio)
     }

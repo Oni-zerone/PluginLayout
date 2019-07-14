@@ -9,10 +9,10 @@
 import UIKit
 import PluginLayout
 
-class MixedViewController: UIViewController, PinterestLayoutDelegate, GridLayoutDelegate, PluginDelegate {
+class MixedViewController: UIViewController {
     func plugin(for section: Int) -> Plugin? {
         switch section {
-        case 1: return PinterestLayoutPlugin(delegate: self)
+        case 1: return StaggeredLayoutPlugin(delegate: self)
         case 2: return GridLayoutPlugin(delegate: self)
         default: return FlowLayoutPlugin(delegate: self)
         }
@@ -37,14 +37,25 @@ class MixedViewController: UIViewController, PinterestLayoutDelegate, GridLayout
         super.viewDidLoad()
         collectionView.dataSource = dataSource
         collectionView.delegate = self
-        
-        let layout = PluginLayout(delegate: self)
 
-        self.collectionView.setCollectionViewLayout(layout, animated: false)
-        
+        self.collectionView.setCollectionViewLayout(PluginLayout(), animated: false)
         self.collectionView.reloadData()
     }
+}
+
+extension MixedViewController: PluginLayoutDelegate, StaggeredLayoutDelegate, GridLayoutDelegate {
+    func collectionView(_ collectionView: UICollectionView, layout: PluginLayout, columnsForSectionAt section: Int) -> Int {
+        return 4
+    }
     
+    func collectionView(_ collectionView: UICollectionView, layout: PluginLayout, aspectRatioAt indexPath: IndexPath) -> CGFloat {
+        return dataSource.picture(at: indexPath).ratio
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout: PluginLayout, itemsPerLineAt indexPath: IndexPath) -> Int {
+        return 3
+    }
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
         return 2
     }
@@ -58,16 +69,13 @@ class MixedViewController: UIViewController, PinterestLayoutDelegate, GridLayout
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: collectionView.bounds.width - 4, height: 100)
     }
-    func itemsPerLine(at indexPath: IndexPath) -> Int {
-        return 3
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+        return CGSize(width: collectionView.frame.width, height: 60)
     }
     
-    func aspectRatio(at indexPath: IndexPath) -> CGFloat {
-        return dataSource.picture(at: indexPath).ratio
-    }
-    
-    func columns(for section: Int) -> Int {
-        return 4
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForFooterInSection section: Int) -> CGSize {
+        return CGSize(width: collectionView.frame.width, height: 60)
     }
 }
 
